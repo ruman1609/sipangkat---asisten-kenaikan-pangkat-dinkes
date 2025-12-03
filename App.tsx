@@ -11,13 +11,19 @@ import {
   ChevronRight,
   FileText,
   ExternalLink,
+  Menu,
+  X,
+  Info,
 } from "lucide-react";
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDriveLinks, setShowDriveLinks] = useState(false);
   const [isKeySelected, setIsKeySelected] = useState<boolean>(false);
+
+  // UI States for Mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showDriveLinks, setShowDriveLinks] = useState(true); // Default open inside drawer
 
   // Initialize API Key and Check Selection
   useEffect(() => {
@@ -27,7 +33,6 @@ const App: React.FC = () => {
         const hasKey = await aistudio.hasSelectedApiKey();
         setIsKeySelected(hasKey);
       } else {
-        // Fallback for environments without aistudio wrapper
         setIsKeySelected(!!process.env.API_KEY);
       }
     };
@@ -39,7 +44,6 @@ const App: React.FC = () => {
     if (aistudio) {
       try {
         await aistudio.openSelectKey();
-        // Assume success and check/set state
         setIsKeySelected(true);
       } catch (error) {
         console.error("Error selecting API key:", error);
@@ -75,6 +79,11 @@ const App: React.FC = () => {
     setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
 
+    // Close sidebar on mobile when sending message if it was open
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
+
     try {
       const gemini = new GeminiService();
       const responseText = await gemini.sendMessage(
@@ -92,10 +101,8 @@ const App: React.FC = () => {
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (error: any) {
-      // Handle Invalid API Key or Project Not Found specifically
       if (error.message === "INVALID_API_KEY" && (window as any).aistudio) {
         setIsKeySelected(false);
-        // Do not add error message to chat, just reset UI to key selection
         return;
       }
 
@@ -112,162 +119,179 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Render Key Setup Screen ---
   if (!isKeySelected) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Key className="text-teal-600" size={32} />
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
+        <div className="bg-white p-6 rounded-3xl shadow-xl max-w-sm w-full text-center border border-slate-100">
+          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Key className="text-teal-600" size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">
-            Setup API Key
+          <h1 className="text-xl font-bold text-slate-800 mb-2">
+            Selamat Datang
           </h1>
-          <p className="text-slate-600 mb-6 text-sm">
-            Untuk menggunakan SiPangkat, silakan pilih atau masukkan Google
-            Cloud API Key Anda dari project berbayar.
+          <p className="text-slate-500 mb-8 text-sm leading-relaxed">
+            Untuk memulai konsultasi dengan <b>SiSekretariat</b>, silakan
+            hubungkan API Key Anda.
           </p>
           <button
             onClick={handleSelectKey}
-            className="w-full bg-teal-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-teal-700 transition-colors shadow-md flex items-center justify-center gap-2"
+            className="w-full bg-slate-900 text-white font-medium py-3.5 px-4 rounded-xl active:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
           >
             <Key size={18} />
-            Pilih API Key
+            Hubungkan API Key
           </button>
-          <p className="text-xs text-slate-400 mt-4">
-            <a
-              href="https://ai.google.dev/gemini-api/docs/billing"
-              target="_blank"
-              rel="noreferrer"
-              className="underline hover:text-teal-600"
-            >
-              Informasi Billing & API Key
-            </a>
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white md:flex-row">
-      {/* Sidebar (Desktop) / Header (Mobile) */}
-      <div className="bg-slate-900 text-white md:w-80 flex-shrink-0 flex flex-col border-r border-slate-800">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="bg-teal-500 p-2 rounded-lg">
-            <Activity size={24} className="text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg tracking-tight">SiPangkat</h1>
-            <p className="text-xs text-slate-400">Dinkes Kota Samarinda</p>
+    <div className="flex flex-col h-screen bg-white overflow-hidden relative">
+      {/* --- Mobile Header --- */}
+      <header className="bg-slate-900 text-white h-16 flex items-center justify-between px-4 shadow-md z-30 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <Menu size={24} className="text-white" />
+          </button>
+          <div className="flex flex-col">
+            <h1 className="font-bold text-base leading-tight">SiSekretariat</h1>
+            <span className="text-[10px] text-teal-400 font-medium tracking-wide">
+              DKK SAMARINDA
+            </span>
           </div>
         </div>
+      </header>
 
-        <div className="p-4 flex-1 overflow-y-auto">
-          <div className="bg-slate-800/50 rounded-xl p-4 mb-6 border border-slate-700">
-            <h3 className="text-sm font-semibold text-teal-400 mb-2 flex items-center gap-2">
-              <ShieldCheck size={16} />
-              Knowledge Base
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed mb-3">
-              Akses dokumen resmi (PDF) di Google Drive untuk informasi detail:
-            </p>
-            <button
+      {/* --- Overlay (Background Dimmer) --- */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 transition-opacity backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* --- Slide-out Drawer (Menu) --- */}
+      <div
+        className={`fixed inset-y-0 left-0 w-[85%] max-w-[300px] bg-slate-900 text-white z-50 transform transition-transform duration-300 ease-out shadow-2xl flex flex-col ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <span className="font-bold text-lg flex items-center gap-2">
+            <ShieldCheck className="text-teal-400" size={20} />
+            Menu
+          </span>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-1 bg-slate-800 rounded-full text-slate-400 hover:text-white"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
+            <div
+              className="flex items-center justify-between mb-3 cursor-pointer"
               onClick={() => setShowDriveLinks(!showDriveLinks)}
-              className="w-full text-xs bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg transition-colors flex items-center justify-between group"
             >
-              <span>{showDriveLinks ? "Tutup Link" : "Buka Link Dokumen"}</span>
+              <h3 className="text-sm font-semibold text-teal-400 flex items-center gap-2">
+                <FileText size={16} />
+                Knowledge Base
+              </h3>
               <ChevronRight
-                size={14}
-                className={`transition-transform ${
+                size={16}
+                className={`text-slate-500 transition-transform ${
                   showDriveLinks ? "rotate-90" : ""
                 }`}
               />
-            </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4 font-light">
+              Akses & Unduh dokumen resmi untuk dianalisis oleh AI:
+            </p>
 
             {showDriveLinks && (
-              <div className="mt-3 space-y-2 text-xs animate-fadeIn">
-                <a
-                  href="https://drive.google.com/drive/folders/1uyU5fakd_SaNS7gcrM56H8cM9EE79dZ4"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 p-2 rounded bg-slate-800 hover:text-teal-300 transition-colors border border-slate-700"
-                >
-                  <FileText size={14} />
-                  <span>1. Folder Dokumen KP</span>
-                  <ExternalLink size={10} className="ml-auto opacity-50" />
-                </a>
-                <a
-                  href="https://drive.google.com/file/d/1m1hUc9wsqoXjT_WlmcvjAcbeh5YRATay/view"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 p-2 rounded bg-slate-800 hover:text-teal-300 transition-colors border border-slate-700"
-                >
-                  <FileText size={14} />
-                  <span>2. File Spesifik</span>
-                  <ExternalLink size={10} className="ml-auto opacity-50" />
-                </a>
-                <p className="text-[10px] text-yellow-500 mt-2 p-2 bg-yellow-500/10 rounded border border-yellow-500/20">
-                  *Download PDF dari link di atas dan upload ke chat agar AI
-                  bisa membacanya.
-                </p>
+              <div className="space-y-2.5 animate-fadeIn">
+                {[
+                  {
+                    label: "Folder Dokumen KP",
+                    url: "https://drive.google.com/drive/folders/1uyU5fakd_SaNS7gcrM56H8cM9EE79dZ4",
+                  },
+                  {
+                    label: "File Spesifik KP (PDF)",
+                    url: "https://drive.google.com/file/d/1m1hUc9wsqoXjT_WlmcvjAcbeh5YRATay/view",
+                  },
+                  {
+                    label: "Alur Permohonan PPID",
+                    url: "https://dinkes.samarindakota.go.id/ppid-tatacarapermohonan",
+                  },
+                  {
+                    label: "Tutorial SiCepat-ASN (Youtube)",
+                    url: "https://www.youtube.com/watch?v=L5jjNTvNIbQ",
+                  },
+                ].map((link, idx) => (
+                  <a
+                    key={idx}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700 active:bg-slate-800 active:scale-[0.98] transition-all group"
+                  >
+                    <div className="bg-slate-800 p-1.5 rounded-lg group-hover:bg-teal-900/30 transition-colors">
+                      <ExternalLink size={14} className="text-teal-400" />
+                    </div>
+                    <span className="text-xs font-medium text-slate-200 line-clamp-2">
+                      {link.label}
+                    </span>
+                  </a>
+                ))}
+
+                <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-xl flex gap-2">
+                  <Info
+                    size={16}
+                    className="text-yellow-500 flex-shrink-0 mt-0.5"
+                  />
+                  <p className="text-[10px] text-yellow-200/80 leading-snug">
+                    Tips: Download PDF dari link di atas, lalu upload ke chat
+                    agar AI bisa membaca isinya.
+                  </p>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-800 text-center">
-          <p className="text-[10px] text-slate-500">
-            © 2025 BKPSDM & Dinkes Samarinda
+        {/* Drawer Footer */}
+        <div className="p-4 border-t border-slate-800">
+          <p className="text-[10px] text-center text-slate-600">
+            © 2025 Dinas Kesehatan Kota Samarinda
           </p>
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full relative">
-        <header className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shadow-md z-10">
-          <div className="flex items-center gap-2">
-            <Activity size={20} className="text-teal-400" />
-            <span className="font-bold">SiPangkat</span>
-          </div>
-          <button
-            onClick={() => setShowDriveLinks(!showDriveLinks)}
-            className="text-slate-300"
-          >
-            <FileText size={20} />
-          </button>
-        </header>
-
-        {/* Mobile Drive Links Overlay */}
-        {showDriveLinks && (
-          <div className="md:hidden absolute top-14 left-0 w-full bg-slate-800 text-white p-4 z-20 shadow-xl border-b border-slate-700">
-            <p className="text-xs font-bold mb-2">Link Referensi:</p>
-            <a
-              href="https://drive.google.com/drive/folders/1uyU5fakd_SaNS7gcrM56H8cM9EE79dZ4"
-              target="_blank"
-              rel="noreferrer"
-              className="block text-sm text-teal-400 mb-2 hover:underline"
-            >
-              1. Folder Dokumen KP
-            </a>
-            <a
-              href="https://drive.google.com/file/d/1m1hUc9wsqoXjT_WlmcvjAcbeh5YRATay/view"
-              target="_blank"
-              rel="noreferrer"
-              className="block text-sm text-teal-400 hover:underline"
-            >
-              2. File Spesifik
-            </a>
-          </div>
-        )}
-
+      {/* --- Main Chat Area --- */}
+      <main className="flex-1 overflow-hidden relative w-full flex flex-col bg-slate-50">
         <MessageList
           messages={messages}
           isLoading={isLoading}
           onSuggestionClick={(text) => handleSend(text, [])}
         />
 
-        <ChatInput onSend={handleSend} disabled={isLoading || !isKeySelected} />
-      </div>
+        {/* Input Wrapper ensures it stays at bottom */}
+        <div className="w-full bg-white border-t border-slate-100 pb-safe">
+          <ChatInput
+            onSend={handleSend}
+            disabled={isLoading || !isKeySelected}
+          />
+        </div>
+      </main>
     </div>
   );
 };
